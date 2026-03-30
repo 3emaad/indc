@@ -1,6 +1,6 @@
 # 📊 مؤشر التحليل الفني الذكي الشامل | Smart Technical Analysis Indicator
 
-> **Pine Script v5 | TradingView** — مؤشر شامل للتحليل الفني الذكي مع قرار نهائي للتداول
+> **Pine Script v6 | TradingView** — مؤشر شامل للتحليل الفني الذكي مع قرار نهائي للتداول
 
 ---
 
@@ -24,9 +24,9 @@
 
 ## 🌟 نظرة عامة | Overview
 
-مؤشر **INDC** هو أداة تحليل فني شامل مبنية بـ **Pine Script v5** لمنصة TradingView. يجمع المؤشر **16 إشارة مستقلة** من أهم أدوات التحليل الفني ويوفر **قراراً نهائياً للتداول** بناءً على نظام تسجيل نقاط ذكي.
+مؤشر **INDC** هو أداة تحليل فني شامل مبنية بـ **Pine Script v6** لمنصة TradingView. يجمع المؤشر **16 إشارة مستقلة** من أهم أدوات التحليل الفني ويوفر **قراراً نهائياً للتداول** بناءً على نظام تسجيل نقاط ذكي.
 
-**The INDC indicator** is a comprehensive technical analysis tool built with Pine Script v5 for TradingView. It combines **16 independent signals** from the most important technical analysis tools and provides a **final trading decision** based on a smart scoring system.
+**The INDC indicator** is a comprehensive technical analysis tool built with Pine Script v6 for TradingView. It combines **16 independent signals** from the most important technical analysis tools and provides a **final trading decision** based on a smart scoring system.
 
 ### الميزات الرئيسية | Key Features
 
@@ -58,7 +58,7 @@
 📁 indicator.pine  ← الملف الرئيسي للمؤشر
 ```
 
-> **ملاحظة:** تأكد من أن لديك حساب TradingView (مجاني أو مدفوع). الإصدار المجاني يدعم Pine Script v5.
+> **ملاحظة:** تأكد من أن لديك حساب TradingView (مجاني أو مدفوع). المؤشر يعمل على Pine Script v6.
 
 ---
 
@@ -322,4 +322,4 @@ Mozilla Public License 2.0 — © 3emaad
 
 ---
 
-*مبني بـ ❤️ باستخدام Pine Script v5*
+*مبني بـ ❤️ باستخدام Pine Script v6*
