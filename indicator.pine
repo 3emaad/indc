@@ -1,0 +1,1156 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0
+// © 3emaad - Smart Technical Analysis Indicator
+// مؤشر التحليل الفني الذكي الشامل
+
+//@version=5
+indicator("مؤشر التحليل الفني الذكي | Smart Technical Analysis",
+     shorttitle="INDC 📊",
+     overlay=true,
+     max_labels_count=500,
+     max_lines_count=500,
+     max_boxes_count=500,
+     max_bars_back=500)
+
+// ==========================================
+// 📌 الإعدادات | Settings
+// ==========================================
+
+// --- وايكوف | Wyckoff ---
+grp_wyckoff = "🔄 وايكوف | Wyckoff Analysis"
+show_wyckoff   = input.bool(true,  "تفعيل تحليل وايكوف | Enable Wyckoff",        group=grp_wyckoff)
+wyckoff_lb     = input.int(50,     "فترة البحث | Lookback",  minval=20, maxval=300, group=grp_wyckoff)
+
+// --- بلوكات الأوامر | Order Blocks ---
+grp_ob         = "📦 بلوكات الأوامر | Order Blocks"
+show_ob        = input.bool(true,  "تفعيل بلوكات الأوامر | Enable Order Blocks",  group=grp_ob)
+ob_lookback    = input.int(20,     "فترة البحث | Lookback",  minval=5,  maxval=100, group=grp_ob)
+ob_bull_col    = input.color(color.new(color.green,  75), "لون صاعد | Bull Color", group=grp_ob)
+ob_bear_col    = input.color(color.new(color.red,    75), "لون هابط | Bear Color", group=grp_ob)
+
+// --- الفجوات السعرية | Fair Value Gaps ---
+grp_fvg        = "📊 الفجوات السعرية | Fair Value Gaps"
+show_fvg       = input.bool(true,  "تفعيل الفجوات | Enable FVG",                   group=grp_fvg)
+fvg_bull_col   = input.color(color.new(color.blue,   80), "لون صاعد | Bull FVG",  group=grp_fvg)
+fvg_bear_col   = input.color(color.new(color.orange, 80), "لون هابط | Bear FVG",  group=grp_fvg)
+
+// --- السيولة | Liquidity ---
+grp_liq        = "💧 السيولة | Liquidity Zones"
+show_liq       = input.bool(true,  "تفعيل السيولة | Enable Liquidity",             group=grp_liq)
+liq_lb         = input.int(10,     "فترة البحث | Lookback",  minval=5,  maxval=50,  group=grp_liq)
+
+// --- هيكل السوق | Market Structure ---
+grp_ms         = "🏗️ هيكل السوق | Market Structure"
+show_ms        = input.bool(true,  "تفعيل هيكل السوق | Enable Market Structure",   group=grp_ms)
+ms_lb          = input.int(10,     "فترة البحث | Lookback",  minval=3,  maxval=50,  group=grp_ms)
+
+// --- RSI ---
+grp_rsi        = "📈 RSI"
+show_rsi       = input.bool(true,  "تفعيل RSI | Enable RSI",                       group=grp_rsi)
+rsi_len        = input.int(14,     "الفترة | Length",        minval=2,              group=grp_rsi)
+rsi_ob_lvl     = input.int(70,     "تشبع شرائي | Overbought",minval=50, maxval=90,  group=grp_rsi)
+rsi_os_lvl     = input.int(30,     "تشبع بيعي | Oversold",   minval=10, maxval=50,  group=grp_rsi)
+
+// --- MACD ---
+grp_macd       = "📈 MACD"
+show_macd      = input.bool(true,  "تفعيل MACD | Enable MACD",                     group=grp_macd)
+macd_fast      = input.int(12,     "سريع | Fast",             minval=2,              group=grp_macd)
+macd_slow      = input.int(26,     "بطيء | Slow",             minval=2,              group=grp_macd)
+macd_sig       = input.int(9,      "إشارة | Signal",          minval=1,              group=grp_macd)
+
+// --- Bollinger Bands ---
+grp_bb         = "📈 Bollinger Bands"
+show_bb        = input.bool(true,  "تفعيل Bollinger | Enable Bollinger Bands",      group=grp_bb)
+bb_len         = input.int(20,     "الفترة | Length",         minval=2,              group=grp_bb)
+bb_mult        = input.float(2.0,  "الانحراف | StdDev",       minval=0.1, step=0.1, group=grp_bb)
+
+// --- المتوسطات المتحركة | EMA ---
+grp_ema        = "📈 المتوسطات | EMA"
+show_ema       = input.bool(true,  "تفعيل المتوسطات | Enable EMAs",                group=grp_ema)
+ema20_len      = input.int(20,     "EMA 20",                  minval=1,              group=grp_ema)
+ema50_len      = input.int(50,     "EMA 50",                  minval=1,              group=grp_ema)
+ema200_len     = input.int(200,    "EMA 200",                 minval=1,              group=grp_ema)
+
+// --- حجم التداول | Volume ---
+grp_vol        = "📈 الحجم | Volume"
+show_vol       = input.bool(true,  "تفعيل الحجم | Enable Volume Analysis",          group=grp_vol)
+vol_len        = input.int(20,     "الفترة | Length",         minval=2,              group=grp_vol)
+
+// --- ATR ---
+grp_atr        = "📈 ATR"
+show_atr       = input.bool(true,  "تفعيل ATR | Enable ATR",                       group=grp_atr)
+atr_len        = input.int(14,     "الفترة | Length",         minval=1,              group=grp_atr)
+
+// --- Stochastic RSI ---
+grp_stoch      = "📈 Stochastic RSI"
+show_stoch     = input.bool(true,  "تفعيل Stoch RSI | Enable Stochastic RSI",       group=grp_stoch)
+stoch_rsi_len  = input.int(14,     "فترة RSI | RSI Length",   minval=2,              group=grp_stoch)
+stoch_len_val  = input.int(14,     "فترة Stoch | Stoch Length",minval=2,             group=grp_stoch)
+stoch_k_sm     = input.int(3,      "تمهيد K | K Smooth",      minval=1,              group=grp_stoch)
+stoch_d_sm     = input.int(3,      "تمهيد D | D Smooth",      minval=1,              group=grp_stoch)
+
+// --- ADX ---
+grp_adx        = "📈 ADX"
+show_adx       = input.bool(true,  "تفعيل ADX | Enable ADX",                       group=grp_adx)
+adx_len        = input.int(14,     "الفترة | Length",         minval=1,              group=grp_adx)
+adx_thresh     = input.int(25,     "حد القوة | Strength",     minval=10, maxval=50,  group=grp_adx)
+
+// --- فيبوناتشي | Fibonacci ---
+grp_fib        = "📈 Fibonacci"
+show_fib       = input.bool(true,  "تفعيل فيبوناتشي | Enable Fibonacci",            group=grp_fib)
+fib_lb         = input.int(50,     "فترة البحث | Lookback",   minval=20, maxval=300, group=grp_fib)
+
+// --- VWAP ---
+grp_vwap       = "📈 VWAP"
+show_vwap      = input.bool(true,  "تفعيل VWAP | Enable VWAP",                     group=grp_vwap)
+
+// --- Ichimoku ---
+grp_ichi       = "📈 Ichimoku Cloud"
+show_ichi      = input.bool(true,  "تفعيل Ichimoku | Enable Ichimoku",              group=grp_ichi)
+ichi_conv      = input.int(9,      "Tenkan-sen",               minval=1,              group=grp_ichi)
+ichi_base      = input.int(26,     "Kijun-sen",                minval=1,              group=grp_ichi)
+ichi_span_b    = input.int(52,     "Senkou Span B",            minval=1,              group=grp_ichi)
+ichi_disp      = input.int(26,     "Displacement",             minval=1,              group=grp_ichi)
+
+// --- Dashboard ---
+grp_dash       = "✅ القرار النهائي | Final Decision"
+show_dash      = input.bool(true,  "تفعيل Dashboard | Enable Dashboard",            group=grp_dash)
+dash_pos       = input.string("Top Right", "موضع الجدول | Position",
+     options=["Top Right", "Top Left", "Bottom Right", "Bottom Left"],               group=grp_dash)
+
+// ==========================================
+// 📊 الحسابات | Calculations
+// ==========================================
+
+// ==========================================
+// 🔄 1. وايكوف | Wyckoff Analysis
+// ==========================================
+
+vol_avg_wy       = ta.sma(volume, wyckoff_lb)
+price_sma_wy     = ta.sma(close, wyckoff_lb)
+sma10            = ta.sma(close, 10)
+sma30            = ta.sma(close, 30)
+
+high_range       = ta.highest(high, wyckoff_lb)
+low_range        = ta.lowest(low,  wyckoff_lb)
+range_val        = high_range - low_range
+mid_range        = (high_range + low_range) / 2.0
+
+// Spring: قاع جديد ثم عودة صاعدة بحجم مرتفع
+spring           = (low[1] == ta.lowest(low, wyckoff_lb)[1]) and (close > open) and (volume > vol_avg_wy)
+// Upthrust: قمة جديدة ثم انعكاس هابط بحجم مرتفع
+upthrust         = (high[1] == ta.highest(high, wyckoff_lb)[1]) and (close < open) and (volume > vol_avg_wy)
+// SOS: صعود قوي بحجم مرتفع فوق المتوسط
+sos_event        = (close > close[1] * 1.003) and (volume > vol_avg_wy * 1.3) and (close > price_sma_wy)
+// SOW: هبوط قوي بحجم مرتفع تحت المتوسط
+sow_event        = (close < close[1] * 0.997) and (volume > vol_avg_wy * 1.3) and (close < price_sma_wy)
+
+// مرحلة وايكوف | Wyckoff Phase
+is_markup        = (sma10 > sma30) and (close > price_sma_wy)
+is_markdown      = (sma10 < sma30) and (close < price_sma_wy)
+is_accum         = (not is_markup) and (not is_markdown) and (close <= mid_range)
+is_dist          = (not is_markup) and (not is_markdown) and (close >  mid_range)
+
+wyckoff_phase    = is_markup   ? "📈 Markup"        :
+                   is_markdown ? "📉 Markdown"      :
+                   is_accum    ? "🔄 Accumulation"  :
+                   is_dist     ? "⚠️ Distribution"  : "❓ Unknown"
+
+wyckoff_signal   = (spring or sos_event)   ?  1 :
+                   (upthrust or sow_event) ? -1 : 0
+
+// ==========================================
+// 📦 2. بلوكات الأوامر | Order Blocks
+// ==========================================
+
+vol_avg_ob       = ta.sma(volume, ob_lookback)
+
+// Bullish OB: آخر شمعة هابطة قبل حركة صاعدة قوية تكسر قمتها
+bull_ob_cond     = (close[1] < open[1]) and (close > high[1]) and (volume > vol_avg_ob)
+// Bearish OB: آخر شمعة صاعدة قبل حركة هابطة قوية تكسر قاعها
+bear_ob_cond     = (close[1] > open[1]) and (close < low[1])  and (volume > vol_avg_ob)
+
+var box[] ob_bull_arr = array.new<box>()
+var box[] ob_bear_arr = array.new<box>()
+
+if show_ob and barstate.isconfirmed
+    if bull_ob_cond
+        if array.size(ob_bull_arr) >= 8
+            box.delete(array.shift(ob_bull_arr))
+        b = box.new(bar_index - 1, high[1], bar_index + ob_lookback * 2, low[1],
+             border_color=color.green, border_width=1, bgcolor=ob_bull_col,
+             extend=extend.right,
+             tooltip="📦 Bullish Order Block (بلوك أوامر صاعد)\n\n" +
+                     "التعريف: آخر شمعة هابطة قبل حركة صاعدة قوية.\n\n" +
+                     "لماذا ظهر: السعر اخترق قمة الشمعة الهابطة السابقة بقوة وبحجم مرتفع.\n\n" +
+                     "المعنى: منطقة دعم قوية - المؤسسات والبنوك وضعت أوامر شراء ضخمة هنا.\n\n" +
+                     "التوصية: ✅ منطقة شراء عند عودة السعر إليها مع تأكيد.\n\n" +
+                     "────────────────────────\n" +
+                     "Definition: Last bearish candle before a strong bullish move.\n" +
+                     "Meaning: Strong support zone - institutions placed large buy orders here.\n" +
+                     "Recommendation: Buy zone on retest with confirmation.")
+        array.push(ob_bull_arr, b)
+
+    if bear_ob_cond
+        if array.size(ob_bear_arr) >= 8
+            box.delete(array.shift(ob_bear_arr))
+        b = box.new(bar_index - 1, high[1], bar_index + ob_lookback * 2, low[1],
+             border_color=color.red, border_width=1, bgcolor=ob_bear_col,
+             extend=extend.right,
+             tooltip="📦 Bearish Order Block (بلوك أوامر هابط)\n\n" +
+                     "التعريف: آخر شمعة صاعدة قبل حركة هابطة قوية.\n\n" +
+                     "لماذا ظهر: السعر اخترق قاع الشمعة الصاعدة السابقة بقوة وبحجم مرتفع.\n\n" +
+                     "المعنى: منطقة مقاومة قوية - المؤسسات والبنوك وضعت أوامر بيع ضخمة هنا.\n\n" +
+                     "التوصية: 🔴 منطقة بيع عند عودة السعر إليها مع تأكيد.\n\n" +
+                     "────────────────────────\n" +
+                     "Definition: Last bullish candle before a strong bearish move.\n" +
+                     "Meaning: Strong resistance zone - institutions placed large sell orders here.\n" +
+                     "Recommendation: Sell zone on retest with confirmation.")
+        array.push(ob_bear_arr, b)
+
+// إشارة OB بناءً على موقع السعر من أقرب بلوك
+ob_signal        = bull_ob_cond ?  1 :
+                   bear_ob_cond ? -1 : 0
+
+// ==========================================
+// 📊 3. الفجوات السعرية | Fair Value Gaps (FVG)
+// ==========================================
+
+// Bullish FVG: قاع الشمعة الحالية > قمة شمعة قبلها بشمعتين (فجوة صاعدة)
+bull_fvg_cond    = low > high[2]
+// Bearish FVG: قمة الشمعة الحالية < قاع شمعة قبلها بشمعتين (فجوة هابطة)
+bear_fvg_cond    = high < low[2]
+
+var box[] fvg_bull_arr = array.new<box>()
+var box[] fvg_bear_arr = array.new<box>()
+
+if show_fvg and barstate.isconfirmed
+    if bull_fvg_cond
+        if array.size(fvg_bull_arr) >= 10
+            box.delete(array.shift(fvg_bull_arr))
+        b = box.new(bar_index - 2, low, bar_index + 50, high[2],
+             border_color=color.new(color.blue, 40), border_width=1,
+             bgcolor=fvg_bull_col, extend=extend.right,
+             tooltip="📊 Bullish Fair Value Gap (فجوة قيمة عادلة صاعدة)\n\n" +
+                     "التعريف: فجوة سعرية بين قاع الشمعة الحالية وقمة شمعة قبلها بشمعتين.\n\n" +
+                     "لماذا ظهر: حركة صاعدة سريعة جداً - لم تُنفَّذ صفقات في هذا النطاق.\n\n" +
+                     "المعنى: السوق قد يعود لـ'ملء' هذه الفجوة في المستقبل قبل الاستمرار.\n\n" +
+                     "التوصية: ✅ منطقة شراء عند عودة السعر لاختبار الفجوة.\n\n" +
+                     "────────────────────────\n" +
+                     "Definition: Gap between current low and high of 2 bars ago.\n" +
+                     "Meaning: Very fast bullish move - no trades occurred in this range.\n" +
+                     "Recommendation: Buy zone when price returns to fill the gap.")
+        array.push(fvg_bull_arr, b)
+
+    if bear_fvg_cond
+        if array.size(fvg_bear_arr) >= 10
+            box.delete(array.shift(fvg_bear_arr))
+        b = box.new(bar_index - 2, low[2], bar_index + 50, high,
+             border_color=color.new(color.orange, 40), border_width=1,
+             bgcolor=fvg_bear_col, extend=extend.right,
+             tooltip="📊 Bearish Fair Value Gap (فجوة قيمة عادلة هابطة)\n\n" +
+                     "التعريف: فجوة سعرية بين قمة الشمعة الحالية وقاع شمعة قبلها بشمعتين.\n\n" +
+                     "لماذا ظهر: حركة هابطة سريعة جداً - لم تُنفَّذ صفقات في هذا النطاق.\n\n" +
+                     "المعنى: السوق قد يعود لـ'ملء' هذه الفجوة قبل الاستمرار هبوطاً.\n\n" +
+                     "التوصية: 🔴 منطقة بيع عند عودة السعر لاختبار الفجوة.\n\n" +
+                     "────────────────────────\n" +
+                     "Definition: Gap between current high and low of 2 bars ago.\n" +
+                     "Meaning: Very fast bearish move - no trades occurred in this range.\n" +
+                     "Recommendation: Sell zone when price returns to fill the gap.")
+        array.push(fvg_bear_arr, b)
+
+fvg_signal       = bull_fvg_cond ?  1 :
+                   bear_fvg_cond ? -1 : 0
+
+// ==========================================
+// 💧 4. مناطق السيولة | Liquidity Zones
+// ==========================================
+
+ph_liq           = ta.pivothigh(high, liq_lb, liq_lb)
+pl_liq           = ta.pivotlow(low,  liq_lb, liq_lb)
+
+var line[] liq_bull_lines = array.new<line>()
+var line[] liq_bear_lines = array.new<line>()
+var float  last_bsl       = na  // Buy-Side Liquidity level
+var float  last_ssl       = na  // Sell-Side Liquidity level
+
+if show_liq
+    if not na(ph_liq)
+        if array.size(liq_bull_lines) >= 12
+            line.delete(array.shift(liq_bull_lines))
+        ln = line.new(bar_index[liq_lb], ph_liq, bar_index, ph_liq,
+             color=color.new(color.red, 20), width=1, style=line.style_dashed,
+             extend=extend.right)
+        array.push(liq_bull_lines, ln)
+        last_bsl := ph_liq
+
+    if not na(pl_liq)
+        if array.size(liq_bear_lines) >= 12
+            line.delete(array.shift(liq_bear_lines))
+        ln = line.new(bar_index[liq_lb], pl_liq, bar_index, pl_liq,
+             color=color.new(color.teal, 20), width=1, style=line.style_dashed,
+             extend=extend.right)
+        array.push(liq_bear_lines, ln)
+        last_ssl := pl_liq
+
+// كشف Liquidity Sweeps | Liquidity Sweep Detection
+bsl_sweep        = not na(last_bsl) and (high > last_bsl) and (close < last_bsl)
+ssl_sweep        = not na(last_ssl) and (low  < last_ssl) and (close > last_ssl)
+
+if show_liq and barstate.isconfirmed
+    if bsl_sweep
+        label.new(bar_index, high, "💧 BSL",
+             color=color.new(color.red, 10), textcolor=color.white,
+             style=label.style_label_down, size=size.small,
+             tooltip="💧 Buy-Side Liquidity Sweep (اختراق سيولة الشراء)\n\n" +
+                     "التعريف: اخترق السعر مستوى السيولة فوق القمة ثم أغلق تحتها.\n\n" +
+                     "لماذا ظهر: السوق 'صاد' أوامر الشراء (Stop Loss للبيع + Buy Stops) فوق القمة.\n\n" +
+                     "المعنى: المؤسسات باعت بأسعار عالية بعد صيد السيولة.\n\n" +
+                     "التوصية: 🔴 إشارة بيع محتملة - ابحث عن تأكيد هبوطي.\n\n" +
+                     "────────────────────────\n" +
+                     "Definition: Price swept above BSL level then closed below it.\n" +
+                     "Meaning: Smart money sold at highs after hunting buy-side liquidity.\n" +
+                     "Recommendation: Potential sell signal - look for bearish confirmation.")
+    if ssl_sweep
+        label.new(bar_index, low, "💧 SSL",
+             color=color.new(color.teal, 10), textcolor=color.white,
+             style=label.style_label_up, size=size.small,
+             tooltip="💧 Sell-Side Liquidity Sweep (اختراق سيولة البيع)\n\n" +
+                     "التعريف: اخترق السعر مستوى السيولة تحت القاع ثم أغلق فوقه.\n\n" +
+                     "لماذا ظهر: السوق 'صاد' أوامر البيع (Stop Loss للشراء + Sell Stops) تحت القاع.\n\n" +
+                     "المعنى: المؤسسات اشترت بأسعار منخفضة بعد صيد السيولة.\n\n" +
+                     "التوصية: ✅ إشارة شراء محتملة - ابحث عن تأكيد صاعد.\n\n" +
+                     "────────────────────────\n" +
+                     "Definition: Price swept below SSL level then closed above it.\n" +
+                     "Meaning: Smart money bought at lows after hunting sell-side liquidity.\n" +
+                     "Recommendation: Potential buy signal - look for bullish confirmation.")
+
+liq_signal       = ssl_sweep ?  1 :
+                   bsl_sweep ? -1 : 0
+
+// ==========================================
+// 📈 11. ATR - متوسط المدى الحقيقي (يُحسب مبكراً لاستخدامه في أقسام أخرى)
+// ATR calculated early for reuse in Market Structure labels and other sections
+// ==========================================
+
+atr_val          = ta.atr(atr_len)
+atr_sma          = ta.sma(atr_val, atr_len)
+atr_expanding    = atr_val > atr_sma
+atr_pct          = (atr_val / close) * 100
+
+// ==========================================
+// 🏗️ 5. هيكل السوق | Market Structure
+// ==========================================
+
+ph_ms            = ta.pivothigh(high, ms_lb, ms_lb)
+pl_ms            = ta.pivotlow(low,  ms_lb, ms_lb)
+
+var float last_ms_ph   = na
+var float prev_ms_ph   = na
+var float last_ms_pl   = na
+var float prev_ms_pl   = na
+var int   last_ph_bar  = na
+var int   last_pl_bar  = na
+
+if not na(ph_ms)
+    prev_ms_ph    := last_ms_ph
+    last_ms_ph    := ph_ms
+    last_ph_bar   := bar_index[ms_lb]
+
+if not na(pl_ms)
+    prev_ms_pl    := last_ms_pl
+    last_ms_pl    := pl_ms
+    last_pl_bar   := bar_index[ms_lb]
+
+// HH / LH / HL / LL
+is_hh = not na(last_ms_ph) and not na(prev_ms_ph) and last_ms_ph > prev_ms_ph
+is_lh = not na(last_ms_ph) and not na(prev_ms_ph) and last_ms_ph < prev_ms_ph
+is_hl = not na(last_ms_pl) and not na(prev_ms_pl) and last_ms_pl > prev_ms_pl
+is_ll = not na(last_ms_pl) and not na(prev_ms_pl) and last_ms_pl < prev_ms_pl
+
+// BOS - Break of Structure
+bos_bull_ms = not na(last_ms_ph) and (close > last_ms_ph) and (close[1] <= last_ms_ph)
+bos_bear_ms = not na(last_ms_pl) and (close < last_ms_pl) and (close[1] >= last_ms_pl)
+
+// CHoCH - Change of Character
+choch_bull_ms = is_ll and bos_bull_ms
+choch_bear_ms = is_hh and bos_bear_ms
+
+
+if show_ms and barstate.isconfirmed
+    if not na(ph_ms)
+        label.new(bar_index[ms_lb], ph_ms + atr_val * 0.3,
+             is_hh ? "HH" : "LH",
+             color=is_hh ? color.new(color.green, 20) : color.new(color.red, 30),
+             textcolor=color.white, style=label.style_label_down, size=size.tiny,
+             tooltip=is_hh ?
+                     "HH - Higher High (قمة أعلى)\n\n" +
+                     "التعريف: قمة جديدة أعلى من القمة السابقة.\n\n" +
+                     "المعنى: الاتجاه الصاعد لا يزال قائماً وقوياً.\n\n" +
+                     "التوصية: ✅ الاتجاه صاعد - ابحث عن فرص شراء عند التصحيح.\n\n" +
+                     "Higher High: New high above previous high. Uptrend intact." :
+                     "LH - Lower High (قمة أدنى)\n\n" +
+                     "التعريف: قمة جديدة أدنى من القمة السابقة.\n\n" +
+                     "المعنى: الاتجاه الصاعد يضعف - البائعون يدخلون بمستويات أدنى.\n\n" +
+                     "التوصية: ⚠️ احذر - قد يكون الاتجاه ينعكس هبوطاً.\n\n" +
+                     "Lower High: New high below previous high. Uptrend weakening.")
+
+    if not na(pl_ms)
+        label.new(bar_index[ms_lb], pl_ms - atr_val * 0.3,
+             is_hl ? "HL" : "LL",
+             color=is_hl ? color.new(color.green, 20) : color.new(color.red, 30),
+             textcolor=color.white, style=label.style_label_up, size=size.tiny,
+             tooltip=is_hl ?
+                     "HL - Higher Low (قاع أعلى)\n\n" +
+                     "التعريف: قاع جديد أعلى من القاع السابق.\n\n" +
+                     "المعنى: المشترون يدعمون السوق عند مستويات أعلى - اتجاه صاعد قوي.\n\n" +
+                     "التوصية: ✅ الاتجاه صاعد - منطقة شراء عند القاع الجديد.\n\n" +
+                     "Higher Low: New low above previous low. Strong uptrend." :
+                     "LL - Lower Low (قاع أدنى)\n\n" +
+                     "التعريف: قاع جديد أدنى من القاع السابق.\n\n" +
+                     "المعنى: الاتجاه الهابط مستمر - البائعون يسيطرون.\n\n" +
+                     "التوصية: 🔴 الاتجاه هابط - ابحث عن فرص بيع عند الارتداد.\n\n" +
+                     "Lower Low: New low below previous low. Downtrend continuing.")
+
+    if bos_bull_ms and not choch_bull_ms
+        label.new(bar_index, high + atr_val * 0.2, "BOS ▲",
+             color=color.new(color.green, 0), textcolor=color.white,
+             style=label.style_label_down, size=size.small,
+             tooltip="BOS ▲ - Break of Structure (كسر الهيكل صاعد)\n\n" +
+                     "التعريف: اختراق قمة محورية سابقة بإغلاق فوقها.\n\n" +
+                     "لماذا ظهر: السعر أغلق فوق آخر قمة محورية مؤكداً الاختراق.\n\n" +
+                     "المعنى: الاتجاه الصاعد مؤكد ومستمر.\n\n" +
+                     "التوصية: ✅ إشارة شراء قوية - الاتجاه الصاعد مؤكد.\n\n" +
+                     "BOS Bullish: Price broke above pivot high confirming uptrend.")
+
+    if bos_bear_ms and not choch_bear_ms
+        label.new(bar_index, low - atr_val * 0.2, "BOS ▼",
+             color=color.new(color.red, 0), textcolor=color.white,
+             style=label.style_label_up, size=size.small,
+             tooltip="BOS ▼ - Break of Structure (كسر الهيكل هابط)\n\n" +
+                     "التعريف: اختراق قاع محوري سابق بإغلاق تحته.\n\n" +
+                     "لماذا ظهر: السعر أغلق تحت آخر قاع محوري مؤكداً الكسر.\n\n" +
+                     "المعنى: الاتجاه الهابط مؤكد ومستمر.\n\n" +
+                     "التوصية: 🔴 إشارة بيع قوية - الاتجاه الهابط مؤكد.\n\n" +
+                     "BOS Bearish: Price broke below pivot low confirming downtrend.")
+
+    if choch_bull_ms
+        label.new(bar_index, high + atr_val * 0.2, "CHoCH ▲",
+             color=color.lime, textcolor=color.black,
+             style=label.style_label_down, size=size.small,
+             tooltip="CHoCH ▲ - Change of Character (تغيير الطابع - صاعد)\n\n" +
+                     "التعريف: كسر هيكل صاعد بعد تسجيل قاع أدنى.\n\n" +
+                     "لماذا ظهر: تحول كامل من هيكل هابط إلى هيكل صاعد.\n\n" +
+                     "المعنى: انعكاس اتجاه السوق من هبوط إلى صعود.\n\n" +
+                     "التوصية: ✅✅ إشارة شراء قوية جداً - انعكاس كامل للاتجاه.\n\n" +
+                     "CHoCH Bullish: Full trend reversal from bearish to bullish.")
+
+    if choch_bear_ms
+        label.new(bar_index, low - atr_val * 0.2, "CHoCH ▼",
+             color=color.orange, textcolor=color.white,
+             style=label.style_label_up, size=size.small,
+             tooltip="CHoCH ▼ - Change of Character (تغيير الطابع - هابط)\n\n" +
+                     "التعريف: كسر هيكل هابط بعد تسجيل قمة أعلى.\n\n" +
+                     "لماذا ظهر: تحول كامل من هيكل صاعد إلى هيكل هابط.\n\n" +
+                     "المعنى: انعكاس اتجاه السوق من صعود إلى هبوط.\n\n" +
+                     "التوصية: 🔴🔴 إشارة بيع قوية جداً - انعكاس كامل للاتجاه.\n\n" +
+                     "CHoCH Bearish: Full trend reversal from bullish to bearish.")
+
+ms_signal = choch_bull_ms ?  1 :
+            choch_bear_ms ? -1 :
+            bos_bull_ms   ?  1 :
+            bos_bear_ms   ? -1 :
+            (is_hh and is_hl) ?  1 :
+            (is_ll and is_lh) ? -1 : 0
+
+// ==========================================
+// 📈 6. RSI - مؤشر القوة النسبية
+// ==========================================
+
+rsi_val          = ta.rsi(close, rsi_len)
+rsi_signal       = rsi_val <= rsi_os_lvl ?  1 :
+                   rsi_val >= rsi_ob_lvl ? -1 : 0
+rsi_label        = rsi_val <= rsi_os_lvl ? "تشبع بيعي | Oversold ✅" :
+                   rsi_val >= rsi_ob_lvl ? "تشبع شرائي | Overbought 🔴" : "محايد | Neutral ➡️"
+
+// ==========================================
+// 📈 7. MACD
+// ==========================================
+
+[macd_line, signal_line, hist_line] = ta.macd(close, macd_fast, macd_slow, macd_sig)
+macd_signal_val  = macd_line > signal_line ?  1 :
+                   macd_line < signal_line ? -1 : 0
+macd_label       = macd_line > signal_line ? "MACD فوق الإشارة | Above Signal ✅" :
+                   macd_line < signal_line ? "MACD تحت الإشارة | Below Signal 🔴" : "محايد | Neutral ➡️"
+
+// ==========================================
+// 📈 8. Bollinger Bands
+// ==========================================
+
+bb_basis         = ta.sma(close, bb_len)
+bb_dev           = bb_mult * ta.stdev(close, bb_len)
+bb_upper         = bb_basis + bb_dev
+bb_lower         = bb_basis - bb_dev
+bb_signal        = close <= bb_lower ?  1 :
+                   close >= bb_upper ? -1 : 0
+bb_label         = close <= bb_lower ? "تحت النطاق السفلي | Below Lower Band ✅" :
+                   close >= bb_upper ? "فوق النطاق العلوي | Above Upper Band 🔴" :
+                   close > bb_basis  ? "فوق المتوسط | Above Basis ↗️" :
+                                       "تحت المتوسط | Below Basis ↘️"
+
+// رسم Bollinger Bands على الشارت
+bb_up_plot   = plot(show_bb ? bb_upper : na, "BB Upper",  color=color.new(color.blue,  50), linewidth=1)
+bb_lo_plot   = plot(show_bb ? bb_lower : na, "BB Lower",  color=color.new(color.blue,  50), linewidth=1)
+bb_mid_plot  = plot(show_bb ? bb_basis : na, "BB Basis",  color=color.new(color.blue,  70), linewidth=1)
+fill(bb_up_plot, bb_lo_plot, color=color.new(color.blue, 93), title="BB Fill")
+
+// ==========================================
+// 📈 9. المتوسطات المتحركة | EMA
+// ==========================================
+
+ema20_val        = ta.ema(close, ema20_len)
+ema50_val        = ta.ema(close, ema50_len)
+ema200_val       = ta.ema(close, ema200_len)
+
+// إشارة EMA: السعر فوق الثلاثة = شراء، تحتها = بيع
+ema_bull         = (close > ema20_val) and (ema20_val > ema50_val) and (ema50_val > ema200_val)
+ema_bear         = (close < ema20_val) and (ema20_val < ema50_val) and (ema50_val < ema200_val)
+// Golden/Death Cross
+golden_cross     = ta.crossover(ema50_val,  ema200_val)
+death_cross      = ta.crossunder(ema50_val, ema200_val)
+
+ema_signal       = ema_bull or golden_cross ?  1 :
+                   ema_bear or death_cross  ? -1 : 0
+ema_label        = golden_cross ? "Golden Cross 🌟✅" :
+                   death_cross  ? "Death Cross 💀🔴" :
+                   ema_bull     ? "فوق المتوسطات | Above EMAs ✅" :
+                   ema_bear     ? "تحت المتوسطات | Below EMAs 🔴" : "محايد | Neutral ➡️"
+
+// رسم المتوسطات
+plot(show_ema ? ema20_val  : na, "EMA 20",  color=color.new(color.yellow, 20), linewidth=1)
+plot(show_ema ? ema50_val  : na, "EMA 50",  color=color.new(color.orange, 20), linewidth=2)
+plot(show_ema ? ema200_val : na, "EMA 200", color=color.new(color.red,    20), linewidth=2)
+
+// Golden / Death Cross labels
+if show_ema and barstate.isconfirmed
+    if golden_cross
+        label.new(bar_index, ema50_val, "⭐ Golden Cross",
+             color=color.new(color.yellow, 0), textcolor=color.black,
+             style=label.style_label_up, size=size.small,
+             tooltip="⭐ Golden Cross (التقاطع الذهبي)\n\n" +
+                     "التعريف: المتوسط 50 يتجاوز المتوسط 200 من الأسفل.\n\n" +
+                     "المعنى: إشارة صعودية قوية جداً - تغيير في الاتجاه الطويل.\n\n" +
+                     "التوصية: ✅ فرصة شراء ممتازة على المدى المتوسط والطويل.\n\n" +
+                     "Golden Cross: EMA 50 crosses above EMA 200. Very strong buy signal.")
+    if death_cross
+        label.new(bar_index, ema50_val, "💀 Death Cross",
+             color=color.new(color.red, 0), textcolor=color.white,
+             style=label.style_label_down, size=size.small,
+             tooltip="💀 Death Cross (التقاطع الميت)\n\n" +
+                     "التعريف: المتوسط 50 يتجاوز المتوسط 200 من الأعلى.\n\n" +
+                     "المعنى: إشارة هبوطية قوية جداً - تغيير في الاتجاه الطويل.\n\n" +
+                     "التوصية: 🔴 إشارة بيع قوية على المدى المتوسط والطويل.\n\n" +
+                     "Death Cross: EMA 50 crosses below EMA 200. Very strong sell signal.")
+
+// ==========================================
+// 📈 10. حجم التداول | Volume Analysis
+// ==========================================
+
+vol_avg_val      = ta.sma(volume, vol_len)
+vol_ratio        = volume / vol_avg_val
+high_volume      = vol_ratio > 1.5
+vol_signal       = high_volume and (close > open) ?  1 :
+                   high_volume and (close < open) ? -1 : 0
+vol_label        = high_volume and (close > open) ? "حجم مرتفع صاعد | High Vol Up ✅" :
+                   high_volume and (close < open) ? "حجم مرتفع هابط | High Vol Down 🔴" :
+                   vol_ratio > 1.0               ? "حجم طبيعي | Normal Volume ➡️" :
+                                                   "حجم منخفض | Low Volume ➡️"
+
+// ==========================================
+// 📈 11. ATR - إشارة وتسمية (الحساب تم مبكراً)
+// ATR signal and label (calculations done earlier, before Market Structure)
+// ==========================================
+
+// ATR يعطي إشارة اتجاهية بالجمع مع الاتجاه
+atr_signal       = atr_expanding and (close > ema50_val) ?  1 :
+                   atr_expanding and (close < ema50_val) ? -1 : 0
+atr_label        = atr_expanding and (close > ema50_val) ? "تذبذب متزايد صاعد | Expanding Up ✅" :
+                   atr_expanding and (close < ema50_val) ? "تذبذب متزايد هابط | Expanding Down 🔴" :
+                                                           "تذبذب منخفض | Low Volatility ➡️"
+
+// ==========================================
+// 📈 12. Stochastic RSI
+// ==========================================
+
+rsi_for_stoch    = ta.rsi(close, stoch_rsi_len)
+stoch_k_raw      = ta.stoch(rsi_for_stoch, rsi_for_stoch, rsi_for_stoch, stoch_len_val)
+stoch_k_val      = ta.sma(stoch_k_raw, stoch_k_sm)
+stoch_d_val      = ta.sma(stoch_k_val, stoch_d_sm)
+
+stoch_signal     = stoch_k_val <= 20 ?  1 :
+                   stoch_k_val >= 80 ? -1 : 0
+stoch_label      = stoch_k_val <= 20 ? "تشبع بيعي | Oversold ✅" :
+                   stoch_k_val >= 80 ? "تشبع شرائي | Overbought 🔴" : "محايد | Neutral ➡️"
+
+// ==========================================
+// 📈 13. ADX - مؤشر قوة الاتجاه
+// ==========================================
+
+// ta.dmi returns [diPlus, diMinus, adx] in Pine Script v5
+[di_plus, di_minus, adx_val] = ta.dmi(adx_len, adx_len)
+strong_trend     = adx_val > adx_thresh
+adx_signal       = strong_trend and (di_plus > di_minus) ?  1 :
+                   strong_trend and (di_minus > di_plus) ? -1 : 0
+adx_label        = not strong_trend                    ? "اتجاه ضعيف | Weak Trend ➡️" :
+                   di_plus > di_minus                   ? "اتجاه صاعد قوي | Strong Bull ✅" :
+                                                         "اتجاه هابط قوي | Strong Bear 🔴"
+
+// ==========================================
+// 📈 14. مستويات فيبوناتشي التلقائية | Auto Fibonacci
+// ==========================================
+
+fib_high         = ta.highest(high, fib_lb)
+fib_low          = ta.lowest(low,   fib_lb)
+fib_range        = fib_high - fib_low
+
+fib_0236         = fib_high - fib_range * 0.236
+fib_0382         = fib_high - fib_range * 0.382
+fib_050          = fib_high - fib_range * 0.500
+fib_0618         = fib_high - fib_range * 0.618
+fib_0786         = fib_high - fib_range * 0.786
+
+// السعر قريب من مستوى فيبوناتشي (ضمن 0.5% ATR)
+fib_zone         = atr_val * 0.5
+near_fib_support = math.abs(close - fib_0618) < fib_zone or
+                   math.abs(close - fib_050)  < fib_zone or
+                   math.abs(close - fib_0786) < fib_zone
+
+near_fib_resist  = math.abs(close - fib_0236) < fib_zone or
+                   math.abs(close - fib_0382) < fib_zone
+
+fib_signal       = near_fib_support and (close > ema50_val) ?  1 :
+                   near_fib_resist  and (close < ema50_val) ? -1 : 0
+fib_label        = near_fib_support ? "عند دعم فيبو | Near Fib Support ✅" :
+                   near_fib_resist  ? "عند مقاومة فيبو | Near Fib Resistance 🔴" :
+                                      "بين مستويات فيبو | Between Fib Levels ➡️"
+
+// رسم مستويات فيبوناتشي
+plot(show_fib ? fib_0236 : na, "Fib 23.6%", color=color.new(color.gray,   40), linewidth=1)
+plot(show_fib ? fib_0382 : na, "Fib 38.2%", color=color.new(color.yellow, 30), linewidth=1)
+plot(show_fib ? fib_050  : na, "Fib 50.0%", color=color.new(color.white,  40), linewidth=1)
+plot(show_fib ? fib_0618 : na, "Fib 61.8%", color=color.new(color.green,  30), linewidth=1)
+plot(show_fib ? fib_0786 : na, "Fib 78.6%", color=color.new(color.teal,   30), linewidth=1)
+
+// ==========================================
+// 📈 15. VWAP - متوسط السعر الموزون بالحجم
+// ==========================================
+
+vwap_val         = ta.vwap(hlc3)
+vwap_signal      = close > vwap_val ?  1 :
+                   close < vwap_val ? -1 : 0
+vwap_label       = close > vwap_val ? "فوق VWAP | Above VWAP ✅" :
+                                      "تحت VWAP | Below VWAP 🔴"
+
+plot(show_vwap ? vwap_val : na, "VWAP",
+     color=color.new(color.fuchsia, 10), linewidth=2)
+
+// ==========================================
+// 📈 16. Ichimoku Cloud
+// ==========================================
+
+// الإيشيموكو يستخدم أعلى سعر وأدنى سعر لكل فترة (ليس سعر الإغلاق)
+// Ichimoku uses highest high and lowest low per period (not close)
+ichi_avg(len) => math.avg(ta.lowest(low, len), ta.highest(high, len))
+
+ichi_tenkan      = ichi_avg(ichi_conv)
+ichi_kijun       = ichi_avg(ichi_base)
+ichi_spanA       = math.avg(ichi_tenkan, ichi_kijun)
+ichi_spanB       = ichi_avg(ichi_span_b)
+ichi_chikou      = close
+
+// السعر فوق السحابة = صاعد، تحتها = هابط
+cloud_top        = math.max(ichi_spanA[ichi_disp], ichi_spanB[ichi_disp])
+cloud_bottom     = math.min(ichi_spanA[ichi_disp], ichi_spanB[ichi_disp])
+
+ichi_signal      = close > cloud_top    ?  1 :
+                   close < cloud_bottom ? -1 : 0
+ichi_label       = close > cloud_top    ? "فوق السحابة | Above Cloud ✅" :
+                   close < cloud_bottom ? "تحت السحابة | Below Cloud 🔴" :
+                                         "داخل السحابة | Inside Cloud ➡️"
+
+// رسم Ichimoku
+tenkan_plot = plot(show_ichi ? ichi_tenkan : na, "Tenkan-sen",
+     color=color.new(color.blue,   20), linewidth=1)
+kijun_plot  = plot(show_ichi ? ichi_kijun  : na, "Kijun-sen",
+     color=color.new(color.red,    20), linewidth=1)
+spanA_plot  = plot(show_ichi ? ichi_spanA  : na, "Senkou A",
+     color=color.new(color.green,  50), linewidth=1, offset=ichi_disp)
+spanB_plot  = plot(show_ichi ? ichi_spanB  : na, "Senkou B",
+     color=color.new(color.red,    50), linewidth=1, offset=ichi_disp)
+plot(show_ichi ? ichi_chikou : na, "Chikou",
+     color=color.new(color.purple, 30), linewidth=1, offset=-ichi_disp)
+fill(spanA_plot, spanB_plot,
+     color=ichi_spanA > ichi_spanB ? color.new(color.green, 85) : color.new(color.red, 85),
+     title="Ichimoku Cloud")
+
+// ==========================================
+// 🔄 Wyckoff - رسم أحداث وايكوف
+// ==========================================
+
+if show_wyckoff and barstate.isconfirmed
+    if spring
+        label.new(bar_index, low - atr_val * 0.3, "🌱 Spring",
+             color=color.new(color.green, 0), textcolor=color.white,
+             style=label.style_label_up, size=size.small,
+             tooltip="🌱 Spring (الزنبرك - وايكوف)\n\n" +
+                     "التعريف: انخفاض حاد تحت مستوى الدعم ثم عودة سريعة فوقه.\n\n" +
+                     "لماذا ظهر: السوق يختبر مستوى الدعم لامتصاص أوامر البيع.\n\n" +
+                     "المعنى: المؤسسات تجمع الأسهم عند أدنى الأسعار قبل الصعود.\n\n" +
+                     "التوصية: ✅ إشارة شراء قوية - انتظر تأكيد الإغلاق فوق الدعم.\n\n" +
+                     "Spring: Sharp drop below support then quick recovery. Strong buy signal.")
+    if upthrust
+        label.new(bar_index, high + atr_val * 0.3, "🔺 Upthrust",
+             color=color.new(color.red, 0), textcolor=color.white,
+             style=label.style_label_down, size=size.small,
+             tooltip="🔺 Upthrust (الدفع للأعلى - وايكوف)\n\n" +
+                     "التعريف: ارتفاع حاد فوق مستوى المقاومة ثم انعكاس سريع تحته.\n\n" +
+                     "لماذا ظهر: محاولة اختراق فاشلة - السوق يرفض المستويات المرتفعة.\n\n" +
+                     "المعنى: المؤسسات تبيع عند أعلى الأسعار بعد رفع السوق.\n\n" +
+                     "التوصية: 🔴 إشارة بيع قوية - انتظر تأكيد الإغلاق تحت المقاومة.\n\n" +
+                     "Upthrust: Sharp rise above resistance then reversal. Strong sell signal.")
+    if sos_event
+        label.new(bar_index, low - atr_val * 0.3, "💪 SOS",
+             color=color.new(color.lime, 0), textcolor=color.black,
+             style=label.style_label_up, size=size.small,
+             tooltip="💪 Sign of Strength - SOS (علامة القوة - وايكوف)\n\n" +
+                     "التعريف: حركة صاعدة قوية بحجم تداول مرتفع فوق المتوسط.\n\n" +
+                     "لماذا ظهر: المشترون يسيطرون بقوة على السوق.\n\n" +
+                     "المعنى: السوق في مرحلة صعود (Markup) - الطلب يتجاوز العرض.\n\n" +
+                     "التوصية: ✅ إشارة شراء - السوق في اتجاه صاعد قوي.\n\n" +
+                     "SOS: Strong upward move with high volume. Buyers in control.")
+    if sow_event
+        label.new(bar_index, high + atr_val * 0.3, "⚠️ SOW",
+             color=color.new(color.orange, 0), textcolor=color.white,
+             style=label.style_label_down, size=size.small,
+             tooltip="⚠️ Sign of Weakness - SOW (علامة الضعف - وايكوف)\n\n" +
+                     "التعريف: حركة هابطة قوية بحجم تداول مرتفع فوق المتوسط.\n\n" +
+                     "لماذا ظهر: البائعون يسيطرون بقوة على السوق.\n\n" +
+                     "المعنى: السوق في مرحلة هبوط (Markdown) - العرض يتجاوز الطلب.\n\n" +
+                     "التوصية: 🔴 إشارة بيع - السوق في اتجاه هابط قوي.\n\n" +
+                     "SOW: Strong downward move with high volume. Sellers in control.")
+
+// ==========================================
+// ✅ نظام التسجيل | Scoring System
+// ==========================================
+
+// كل مؤشر يعطي: +1 شراء / -1 بيع / 0 محايد
+// Each indicator gives: +1 buy / -1 sell / 0 neutral
+
+s01 = wyckoff_signal   // وايكوف
+s02 = ob_signal        // بلوكات الأوامر
+s03 = fvg_signal       // الفجوات
+s04 = liq_signal       // السيولة
+s05 = ms_signal        // هيكل السوق
+s06 = rsi_signal       // RSI
+s07 = macd_signal_val  // MACD
+s08 = bb_signal        // Bollinger Bands
+s09 = ema_signal       // EMA
+s10 = vol_signal       // Volume
+s11 = atr_signal       // ATR
+s12 = stoch_signal     // Stochastic RSI
+s13 = adx_signal       // ADX
+s14 = fib_signal       // Fibonacci
+s15 = vwap_signal      // VWAP
+s16 = ichi_signal      // Ichimoku
+
+total_signals    = 16
+buy_count        = (s01 == 1 ? 1 : 0) + (s02 == 1 ? 1 : 0) + (s03 == 1 ? 1 : 0) +
+                   (s04 == 1 ? 1 : 0) + (s05 == 1 ? 1 : 0) + (s06 == 1 ? 1 : 0) +
+                   (s07 == 1 ? 1 : 0) + (s08 == 1 ? 1 : 0) + (s09 == 1 ? 1 : 0) +
+                   (s10 == 1 ? 1 : 0) + (s11 == 1 ? 1 : 0) + (s12 == 1 ? 1 : 0) +
+                   (s13 == 1 ? 1 : 0) + (s14 == 1 ? 1 : 0) + (s15 == 1 ? 1 : 0) +
+                   (s16 == 1 ? 1 : 0)
+
+sell_count       = (s01 == -1 ? 1 : 0) + (s02 == -1 ? 1 : 0) + (s03 == -1 ? 1 : 0) +
+                   (s04 == -1 ? 1 : 0) + (s05 == -1 ? 1 : 0) + (s06 == -1 ? 1 : 0) +
+                   (s07 == -1 ? 1 : 0) + (s08 == -1 ? 1 : 0) + (s09 == -1 ? 1 : 0) +
+                   (s10 == -1 ? 1 : 0) + (s11 == -1 ? 1 : 0) + (s12 == -1 ? 1 : 0) +
+                   (s13 == -1 ? 1 : 0) + (s14 == -1 ? 1 : 0) + (s15 == -1 ? 1 : 0) +
+                   (s16 == -1 ? 1 : 0)
+
+neutral_count    = total_signals - buy_count - sell_count
+
+buy_pct          = (buy_count  / total_signals) * 100.0
+sell_pct         = (sell_count / total_signals) * 100.0
+confidence_pct   = math.max(buy_pct, sell_pct)
+
+// القرار النهائي | Final Decision
+final_decision   = buy_pct  >= 70 ? "🚀 شراء قوي | STRONG BUY"   :
+                   buy_pct  >= 55 ? "✅ شراء     | BUY"            :
+                   sell_pct >= 70 ? "🔻 بيع قوي  | STRONG SELL"   :
+                   sell_pct >= 55 ? "🔴 بيع      | SELL"           :
+                                    "⚖️ محايد    | NEUTRAL"
+
+decision_color   = buy_pct  >= 70 ? color.new(color.lime,   10) :
+                   buy_pct  >= 55 ? color.new(color.green,  20) :
+                   sell_pct >= 70 ? color.new(color.red,    10) :
+                   sell_pct >= 55 ? color.new(color.orange, 20) :
+                                    color.new(color.gray,   30)
+
+// ==========================================
+// 📊 Dashboard - لوحة القرار النهائي
+// ==========================================
+
+sig_icon(s) =>
+    s == 1 ? "✅" : s == -1 ? "🔴" : "➡️"
+
+sig_text(s) =>
+    s == 1 ? "شراء | BUY" : s == -1 ? "بيع | SELL" : "محايد | NEUTRAL"
+
+tbl_pos = dash_pos == "Top Right"    ? position.top_right    :
+          dash_pos == "Top Left"     ? position.top_left     :
+          dash_pos == "Bottom Right" ? position.bottom_right :
+                                       position.bottom_left
+
+var table dash_tbl = table.new(tbl_pos, 3, 22,
+     border_color=color.new(color.white, 60), border_width=1,
+     frame_color=color.new(color.white, 40),  frame_width=2)
+
+if show_dash and barstate.islast
+    // ─── رأس الجدول | Header ───
+    table.cell(dash_tbl, 0, 0, "📊 المؤشر | Indicator",
+         text_color=color.white, text_size=size.small,
+         bgcolor=color.new(color.navy, 20))
+    table.cell(dash_tbl, 1, 0, "القيمة | Value",
+         text_color=color.white, text_size=size.small,
+         bgcolor=color.new(color.navy, 20))
+    table.cell(dash_tbl, 2, 0, "الإشارة | Signal",
+         text_color=color.white, text_size=size.small,
+         bgcolor=color.new(color.navy, 20))
+
+    // صف القرار النهائي | Final Decision Row
+    table.cell(dash_tbl, 0, 1, "🎯 القرار النهائي | FINAL",
+         text_color=color.white, text_size=size.normal, text_halign=text.align_center,
+         bgcolor=decision_color)
+    table.cell(dash_tbl, 1, 1, str.tostring(math.round(confidence_pct)) + "% ثقة",
+         text_color=color.white, text_size=size.normal, text_halign=text.align_center,
+         bgcolor=decision_color,
+         tooltip="نسبة الثقة | Confidence Level\n" +
+                 "شراء: " + str.tostring(buy_count) + "/" + str.tostring(total_signals) +
+                 " (" + str.tostring(math.round(buy_pct)) + "%)\n" +
+                 "بيع: " + str.tostring(sell_count) + "/" + str.tostring(total_signals) +
+                 " (" + str.tostring(math.round(sell_pct)) + "%)\n" +
+                 "محايد: " + str.tostring(neutral_count) + "/" + str.tostring(total_signals))
+    table.cell(dash_tbl, 2, 1, final_decision,
+         text_color=color.white, text_size=size.normal, text_halign=text.align_center,
+         bgcolor=decision_color,
+         tooltip="القرار النهائي مبني على " + str.tostring(total_signals) + " مؤشر:\n" +
+                 "✅ شراء: " + str.tostring(buy_count)     + " مؤشر\n" +
+                 "🔴 بيع: "  + str.tostring(sell_count)    + " مؤشر\n" +
+                 "➡️ محايد: " + str.tostring(neutral_count) + " مؤشر\n\n" +
+                 "🚀 شراء قوي: 70%+ إشارات شراء\n" +
+                 "✅ شراء: 55-70% إشارات شراء\n" +
+                 "⚖️ محايد: 45-55%\n" +
+                 "🔴 بيع: 55-70% إشارات بيع\n" +
+                 "🔻 بيع قوي: 70%+ إشارات بيع")
+
+    // ─── مرحلة وايكوف | Wyckoff Phase ───
+    table.cell(dash_tbl, 0, 2, "🔄 وايكوف | Wyckoff",
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.purple, 40))
+    table.cell(dash_tbl, 1, 2, wyckoff_phase,
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.purple, 50))
+    table.cell(dash_tbl, 2, 2, sig_icon(s01) + " " + sig_text(s01),
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=s01 == 1 ? color.new(color.green, 50) :
+                 s01 == -1 ? color.new(color.red, 50) : color.new(color.gray, 60))
+
+    // ─── Order Blocks ───
+    table.cell(dash_tbl, 0, 3, "📦 Order Blocks",
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.purple, 40))
+    table.cell(dash_tbl, 1, 3, bull_ob_cond ? "Bull OB 📦" : bear_ob_cond ? "Bear OB 📦" : "-",
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.purple, 50))
+    table.cell(dash_tbl, 2, 3, sig_icon(s02) + " " + sig_text(s02),
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=s02 == 1 ? color.new(color.green, 50) :
+                 s02 == -1 ? color.new(color.red, 50) : color.new(color.gray, 60))
+
+    // ─── FVG ───
+    table.cell(dash_tbl, 0, 4, "📊 Fair Value Gap",
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.purple, 40))
+    table.cell(dash_tbl, 1, 4, bull_fvg_cond ? "Bull FVG ↑" : bear_fvg_cond ? "Bear FVG ↓" : "-",
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.purple, 50))
+    table.cell(dash_tbl, 2, 4, sig_icon(s03) + " " + sig_text(s03),
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=s03 == 1 ? color.new(color.green, 50) :
+                 s03 == -1 ? color.new(color.red, 50) : color.new(color.gray, 60))
+
+    // ─── Liquidity ───
+    table.cell(dash_tbl, 0, 5, "💧 السيولة | Liquidity",
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.purple, 40))
+    table.cell(dash_tbl, 1, 5, ssl_sweep ? "SSL Sweep 💧" : bsl_sweep ? "BSL Sweep 💧" : "-",
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.purple, 50))
+    table.cell(dash_tbl, 2, 5, sig_icon(s04) + " " + sig_text(s04),
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=s04 == 1 ? color.new(color.green, 50) :
+                 s04 == -1 ? color.new(color.red, 50) : color.new(color.gray, 60))
+
+    // ─── Market Structure ───
+    table.cell(dash_tbl, 0, 6, "🏗️ هيكل السوق | MS",
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.purple, 40))
+    table.cell(dash_tbl, 1, 6, choch_bull_ms ? "CHoCH ▲" : choch_bear_ms ? "CHoCH ▼" :
+               bos_bull_ms ? "BOS ▲" : bos_bear_ms ? "BOS ▼" :
+               is_hh ? "HH" : is_ll ? "LL" : is_hl ? "HL" : is_lh ? "LH" : "-",
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.purple, 50))
+    table.cell(dash_tbl, 2, 6, sig_icon(s05) + " " + sig_text(s05),
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=s05 == 1 ? color.new(color.green, 50) :
+                 s05 == -1 ? color.new(color.red, 50) : color.new(color.gray, 60))
+
+    // ─── RSI ───
+    table.cell(dash_tbl, 0, 7, "📈 RSI (" + str.tostring(rsi_len) + ")",
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.blue, 40))
+    table.cell(dash_tbl, 1, 7, str.tostring(math.round(rsi_val, 1)) + " | " + rsi_label,
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.blue, 50),
+         tooltip="RSI = " + str.tostring(math.round(rsi_val, 2)) +
+                 "\nتشبع شرائي فوق " + str.tostring(rsi_ob_lvl) +
+                 "\nتشبع بيعي تحت " + str.tostring(rsi_os_lvl))
+    table.cell(dash_tbl, 2, 7, sig_icon(s06) + " " + sig_text(s06),
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=s06 == 1 ? color.new(color.green, 50) :
+                 s06 == -1 ? color.new(color.red, 50) : color.new(color.gray, 60))
+
+    // ─── MACD ───
+    table.cell(dash_tbl, 0, 8, "📈 MACD (" + str.tostring(macd_fast) + "/" + str.tostring(macd_slow) + ")",
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.blue, 40))
+    table.cell(dash_tbl, 1, 8, macd_label,
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.blue, 50),
+         tooltip="MACD = " + str.tostring(math.round(macd_line, 4)) +
+                 "\nSignal = " + str.tostring(math.round(signal_line, 4)) +
+                 "\nHistogram = " + str.tostring(math.round(hist_line, 4)))
+    table.cell(dash_tbl, 2, 8, sig_icon(s07) + " " + sig_text(s07),
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=s07 == 1 ? color.new(color.green, 50) :
+                 s07 == -1 ? color.new(color.red, 50) : color.new(color.gray, 60))
+
+    // ─── Bollinger Bands ───
+    table.cell(dash_tbl, 0, 9, "📈 Bollinger Bands",
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.blue, 40))
+    table.cell(dash_tbl, 1, 9, bb_label,
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.blue, 50),
+         tooltip="BB Upper = " + str.tostring(math.round(bb_upper, 2)) +
+                 "\nBB Basis = " + str.tostring(math.round(bb_basis, 2)) +
+                 "\nBB Lower = " + str.tostring(math.round(bb_lower, 2)) +
+                 "\nClose = "    + str.tostring(math.round(close,    2)))
+    table.cell(dash_tbl, 2, 9, sig_icon(s08) + " " + sig_text(s08),
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=s08 == 1 ? color.new(color.green, 50) :
+                 s08 == -1 ? color.new(color.red, 50) : color.new(color.gray, 60))
+
+    // ─── EMA ───
+    table.cell(dash_tbl, 0, 10, "📈 EMA 20/50/200",
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.blue, 40))
+    table.cell(dash_tbl, 1, 10, ema_label,
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.blue, 50),
+         tooltip="EMA 20  = " + str.tostring(math.round(ema20_val,  2)) +
+                 "\nEMA 50  = " + str.tostring(math.round(ema50_val,  2)) +
+                 "\nEMA 200 = " + str.tostring(math.round(ema200_val, 2)) +
+                 "\nClose   = " + str.tostring(math.round(close,      2)))
+    table.cell(dash_tbl, 2, 10, sig_icon(s09) + " " + sig_text(s09),
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=s09 == 1 ? color.new(color.green, 50) :
+                 s09 == -1 ? color.new(color.red, 50) : color.new(color.gray, 60))
+
+    // ─── Volume ───
+    table.cell(dash_tbl, 0, 11, "📈 Volume",
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.blue, 40))
+    table.cell(dash_tbl, 1, 11, vol_label,
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.blue, 50),
+         tooltip="Volume = " + str.tostring(volume) +
+                 "\nAvg Vol = " + str.tostring(math.round(vol_avg_val)) +
+                 "\nRatio = " + str.tostring(math.round(vol_ratio, 2)) + "x")
+    table.cell(dash_tbl, 2, 11, sig_icon(s10) + " " + sig_text(s10),
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=s10 == 1 ? color.new(color.green, 50) :
+                 s10 == -1 ? color.new(color.red, 50) : color.new(color.gray, 60))
+
+    // ─── ATR ───
+    table.cell(dash_tbl, 0, 12, "📈 ATR (" + str.tostring(atr_len) + ")",
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.blue, 40))
+    table.cell(dash_tbl, 1, 12, atr_label,
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.blue, 50),
+         tooltip="ATR = " + str.tostring(math.round(atr_val, 4)) +
+                 "\nATR% = " + str.tostring(math.round(atr_pct, 2)) + "%" +
+                 "\nATR SMA = " + str.tostring(math.round(atr_sma, 4)) +
+                 "\nمتوسع | Expanding: " + str.tostring(atr_expanding))
+    table.cell(dash_tbl, 2, 12, sig_icon(s11) + " " + sig_text(s11),
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=s11 == 1 ? color.new(color.green, 50) :
+                 s11 == -1 ? color.new(color.red, 50) : color.new(color.gray, 60))
+
+    // ─── Stochastic RSI ───
+    table.cell(dash_tbl, 0, 13, "📈 Stoch RSI",
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.blue, 40))
+    table.cell(dash_tbl, 1, 13, stoch_label,
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.blue, 50),
+         tooltip="Stoch K = " + str.tostring(math.round(stoch_k_val, 1)) +
+                 "\nStoch D = " + str.tostring(math.round(stoch_d_val, 1)) +
+                 "\nتشبع شرائي فوق 80 | Overbought > 80\nتشبع بيعي تحت 20 | Oversold < 20")
+    table.cell(dash_tbl, 2, 13, sig_icon(s12) + " " + sig_text(s12),
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=s12 == 1 ? color.new(color.green, 50) :
+                 s12 == -1 ? color.new(color.red, 50) : color.new(color.gray, 60))
+
+    // ─── ADX ───
+    table.cell(dash_tbl, 0, 14, "📈 ADX (" + str.tostring(adx_len) + ")",
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.blue, 40))
+    table.cell(dash_tbl, 1, 14, adx_label,
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.blue, 50),
+         tooltip="ADX = " + str.tostring(math.round(adx_val, 1)) +
+                 "\nDI+ = " + str.tostring(math.round(di_plus,  1)) +
+                 "\nDI- = " + str.tostring(math.round(di_minus, 1)) +
+                 "\nحد القوة | Threshold: " + str.tostring(adx_thresh))
+    table.cell(dash_tbl, 2, 14, sig_icon(s13) + " " + sig_text(s13),
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=s13 == 1 ? color.new(color.green, 50) :
+                 s13 == -1 ? color.new(color.red, 50) : color.new(color.gray, 60))
+
+    // ─── Fibonacci ───
+    table.cell(dash_tbl, 0, 15, "📈 Fibonacci",
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.blue, 40))
+    table.cell(dash_tbl, 1, 15, fib_label,
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.blue, 50),
+         tooltip="Fib High = "   + str.tostring(math.round(fib_high, 2)) +
+                 "\nFib Low = "  + str.tostring(math.round(fib_low,  2)) +
+                 "\n23.6% = "    + str.tostring(math.round(fib_0236, 2)) +
+                 "\n38.2% = "    + str.tostring(math.round(fib_0382, 2)) +
+                 "\n50.0% = "    + str.tostring(math.round(fib_050,  2)) +
+                 "\n61.8% = "    + str.tostring(math.round(fib_0618, 2)) +
+                 "\n78.6% = "    + str.tostring(math.round(fib_0786, 2)))
+    table.cell(dash_tbl, 2, 15, sig_icon(s14) + " " + sig_text(s14),
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=s14 == 1 ? color.new(color.green, 50) :
+                 s14 == -1 ? color.new(color.red, 50) : color.new(color.gray, 60))
+
+    // ─── VWAP ───
+    table.cell(dash_tbl, 0, 16, "📈 VWAP",
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.blue, 40))
+    table.cell(dash_tbl, 1, 16, vwap_label,
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.blue, 50),
+         tooltip="VWAP = " + str.tostring(math.round(vwap_val, 2)) +
+                 "\nClose = " + str.tostring(math.round(close, 2)) +
+                 "\nالسعر " + (close > vwap_val ? "فوق" : "تحت") + " VWAP")
+    table.cell(dash_tbl, 2, 16, sig_icon(s15) + " " + sig_text(s15),
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=s15 == 1 ? color.new(color.green, 50) :
+                 s15 == -1 ? color.new(color.red, 50) : color.new(color.gray, 60))
+
+    // ─── Ichimoku ───
+    table.cell(dash_tbl, 0, 17, "📈 Ichimoku Cloud",
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.blue, 40))
+    table.cell(dash_tbl, 1, 17, ichi_label,
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=color.new(color.blue, 50),
+         tooltip="Tenkan = " + str.tostring(math.round(ichi_tenkan, 2)) +
+                 "\nKijun = " + str.tostring(math.round(ichi_kijun, 2)) +
+                 "\nCloud Top = " + str.tostring(math.round(cloud_top, 2)) +
+                 "\nCloud Bot = " + str.tostring(math.round(cloud_bottom, 2)) +
+                 "\nClose = " + str.tostring(math.round(close, 2)))
+    table.cell(dash_tbl, 2, 17, sig_icon(s16) + " " + sig_text(s16),
+         text_color=color.white, text_size=size.tiny,
+         bgcolor=s16 == 1 ? color.new(color.green, 50) :
+                 s16 == -1 ? color.new(color.red, 50) : color.new(color.gray, 60))
+
+    // ─── ملخص النقاط | Score Summary ───
+    table.cell(dash_tbl, 0, 18, "━━━━━━━━━━━━",
+         text_color=color.new(color.white, 60), text_size=size.tiny,
+         bgcolor=color.new(color.black, 20))
+    table.cell(dash_tbl, 1, 18, "━━━━━━━━━━━━",
+         text_color=color.new(color.white, 60), text_size=size.tiny,
+         bgcolor=color.new(color.black, 20))
+    table.cell(dash_tbl, 2, 18, "━━━━━━━━━━━━",
+         text_color=color.new(color.white, 60), text_size=size.tiny,
+         bgcolor=color.new(color.black, 20))
+
+    table.cell(dash_tbl, 0, 19, "✅ شراء | BUY",
+         text_color=color.lime, text_size=size.small,
+         bgcolor=color.new(color.green, 60))
+    table.cell(dash_tbl, 1, 19, str.tostring(buy_count) + " / " + str.tostring(total_signals),
+         text_color=color.lime, text_size=size.small,
+         bgcolor=color.new(color.green, 60))
+    table.cell(dash_tbl, 2, 19, str.tostring(math.round(buy_pct)) + "%",
+         text_color=color.lime, text_size=size.small,
+         bgcolor=color.new(color.green, 60))
+
+    table.cell(dash_tbl, 0, 20, "🔴 بيع | SELL",
+         text_color=color.red, text_size=size.small,
+         bgcolor=color.new(color.red, 60))
+    table.cell(dash_tbl, 1, 20, str.tostring(sell_count) + " / " + str.tostring(total_signals),
+         text_color=color.red, text_size=size.small,
+         bgcolor=color.new(color.red, 60))
+    table.cell(dash_tbl, 2, 20, str.tostring(math.round(sell_pct)) + "%",
+         text_color=color.red, text_size=size.small,
+         bgcolor=color.new(color.red, 60))
+
+    table.cell(dash_tbl, 0, 21, "➡️ محايد | NEUTRAL",
+         text_color=color.gray, text_size=size.small,
+         bgcolor=color.new(color.gray, 70))
+    table.cell(dash_tbl, 1, 21, str.tostring(neutral_count) + " / " + str.tostring(total_signals),
+         text_color=color.gray, text_size=size.small,
+         bgcolor=color.new(color.gray, 70))
+    table.cell(dash_tbl, 2, 21,
+         str.tostring(math.round((neutral_count / total_signals) * 100)) + "%",
+         text_color=color.gray, text_size=size.small,
+         bgcolor=color.new(color.gray, 70))
+
+// ==========================================
+// 🔔 التنبيهات | Alerts
+// ==========================================
+
+alertcondition(buy_pct  >= 70, "🚀 شراء قوي | Strong Buy",
+     "إشارة شراء قوية! نسبة الثقة: " + str.tostring(math.round(buy_pct)) + "% | Strong Buy Signal!")
+alertcondition(sell_pct >= 70, "🔻 بيع قوي | Strong Sell",
+     "إشارة بيع قوية! نسبة الثقة: " + str.tostring(math.round(sell_pct)) + "% | Strong Sell Signal!")
+alertcondition(buy_pct  >= 55, "✅ شراء | Buy",
+     "إشارة شراء! | Buy Signal!")
+alertcondition(sell_pct >= 55, "🔴 بيع | Sell",
+     "إشارة بيع! | Sell Signal!")
+alertcondition(spring,    "🌱 Spring (وايكوف)",   "Wyckoff Spring detected!")
+alertcondition(upthrust,  "🔺 Upthrust (وايكوف)", "Wyckoff Upthrust detected!")
+alertcondition(sos_event, "💪 SOS (وايكوف)",       "Sign of Strength detected!")
+alertcondition(sow_event, "⚠️ SOW (وايكوف)",       "Sign of Weakness detected!")
+alertcondition(bos_bull_ms, "BOS ▲ (هيكل السوق)",  "Break of Structure Bullish!")
+alertcondition(bos_bear_ms, "BOS ▼ (هيكل السوق)",  "Break of Structure Bearish!")
+alertcondition(choch_bull_ms, "CHoCH ▲ (تغيير طابع)", "Change of Character Bullish!")
+alertcondition(choch_bear_ms, "CHoCH ▼ (تغيير طابع)", "Change of Character Bearish!")
+alertcondition(ssl_sweep, "💧 SSL Sweep (سيولة)", "Sell-Side Liquidity Sweep!")
+alertcondition(bsl_sweep, "💧 BSL Sweep (سيولة)", "Buy-Side Liquidity Sweep!")
